@@ -2,6 +2,8 @@ import React, { useState } from 'react'
 import styled from 'styled-components'
 import CheckForm from './components/CheckForm'
 import SalesForm from './components/SalesForm'
+import InternetForm from './components/InternetForm'
+import LastForm from './components/LastForm'
 
 const vars = {
     bg: '#f3f6fb',
@@ -84,29 +86,10 @@ const TabButton = styled.button`
     transition:
         background 0.12s ease,
         color 0.12s ease;
-    &:first-child {
-        border-right: 1px solid ${vars.border};
-    }
 `
 
 const Content = styled.main`
     display: block;
-`
-
-const SalesView = styled.div`
-    padding: 8px 0;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-`
-
-const SalesNote = styled.div`
-    background: ${vars.bg};
-    border: 1px solid ${vars.border};
-    padding: 12px;
-    border-radius: 8px;
-    color: ${vars.muted};
-    font-size: 14px;
 `
 
 export default function App() {
@@ -130,10 +113,24 @@ export default function App() {
                         aria-pressed={active === 'sales'}>
                         매출
                     </TabButton>
+                    <TabButton
+                        type="button"
+                        active={active === 'internet'}
+                        onClick={() => setActive('internet')}
+                        aria-pressed={active === 'internet'}>
+                        인터넷 발주
+                    </TabButton>
+                    <TabButton
+                        type="button"
+                        active={active === 'last'}
+                        onClick={() => setActive('last')}
+                        aria-pressed={active === 'last'}>
+                        마감보고
+                    </TabButton>
                 </TabGroup>
 
                 <Content>
-                    {active === 'feedback' ? (
+                    {active === 'feedback' && (
                         <>
                             <Header>
                                 <TitleGroup>
@@ -145,7 +142,8 @@ export default function App() {
                             </Header>
                             <CheckForm onSubmit={() => {}} />
                         </>
-                    ) : (
+                    )}
+                    {active === 'sales' && (
                         <>
                             <Header>
                                 <TitleGroup>
@@ -156,6 +154,32 @@ export default function App() {
                                 </TitleGroup>
                             </Header>
                             <SalesForm onSubmit={() => {}} />
+                        </>
+                    )}
+                    {active === 'internet' && (
+                        <>
+                            <Header>
+                                <TitleGroup>
+                                    <Title>인터넷 발주</Title>
+                                    <Subtitle>
+                                        인터넷 발주를 기록하세요
+                                    </Subtitle>
+                                </TitleGroup>
+                            </Header>
+                            <InternetForm onSubmit={() => {}} />
+                        </>
+                    )}
+                    {active === 'last' && (
+                        <>
+                            <Header>
+                                <TitleGroup>
+                                    <Title>마감보고</Title>
+                                    <Subtitle>
+                                        마감 보고서를 작성하세요
+                                    </Subtitle>
+                                </TitleGroup>
+                            </Header>
+                            <LastForm onSubmit={() => {}} />
                         </>
                     )}
                 </Content>
