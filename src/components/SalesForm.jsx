@@ -260,16 +260,16 @@ const GapDisplay = styled.div`
 export default function SalesForm({ onSubmit }) {
     const previewRef = useRef(null)
     const [form, setForm] = useState({
-        totalSales: 0,
-        cardSales: 0,
-        cashSales: 0,
-        seoulPay: 0,
-        bankTransfer: 0,
-        cash: 0,
-        employee: 0,
-        sejong: 0,
-        milion: 0,
-        naver: 0,
+        totalSales: '',
+        cardSales: '',
+        cashSales: '',
+        seoulPay: '',
+        bankTransfer: '',
+        cash: '',
+        employee: '',
+        sejong: '',
+        milion: '',
+        naver: '',
     })
 
     const [submitted, setSubmitted] = useState(null)
@@ -297,13 +297,10 @@ export default function SalesForm({ onSubmit }) {
                     (Number(form.cash) || 0))
         ) > 0.001
 
-    const discountMismatch =
-        Math.abs(
-            (Number(form.employee) || 0) +
-                (Number(form.sejong) || 0) +
-                (Number(form.milion) || 0)
-        ) > 0.001
-
+    const discountsSum =
+        (Number(form.employee) || 0) +
+        (Number(form.sejong) || 0) +
+        (Number(form.milion) || 0)
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target
         if (type === 'checkbox') {
@@ -615,14 +612,8 @@ export default function SalesForm({ onSubmit }) {
                         )}
                         {
                             <Discount>
-                                할인 총액 -{' '}
-                                {(
-                                    form.employee +
-                                    form.sejong +
-                                    form.naver +
-                                    form.milion
-                                ).toLocaleString()}
-                                원
+                                할인 총액이 {discountsSum.toLocaleString()}원
+                                입니다.
                             </Discount>
                         }
                     </>
