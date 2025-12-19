@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import styled from 'styled-components'
 
 const vars = {
@@ -21,6 +21,11 @@ const Container = styled.div`
     font-family:
         -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans KR',
         'Helvetica Neue', Arial;
+
+    /* 모바일: 세로 스택 (폼 위, 결과 아래) */
+    @media (max-width: 900px) {
+        flex-direction: column;
+    }
 `
 
 const FormWrapper = styled.form`
@@ -32,21 +37,54 @@ const FormWrapper = styled.form`
 
 const Fields = styled.div`
     display: grid;
-
-    gap: 12px;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 10px;
     margin-bottom: 12px;
 `
 
 const Field = styled.div`
     display: flex;
-    flex-direction: column;
+    align-items: center;
     gap: 6px;
+    padding: 6px 8px;
+    box-sizing: border-box;
 `
 
 const Label = styled.label`
-    font-size: 13px;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between; /* 제목 왼쪽, 입력 오른쪽으로 정렬 */
+    align-items: center;
+    gap: 11px;
+    width: 100%;
+`
+
+const Title = styled.div`
+    font-size: 15px;
     color: #111827;
     font-weight: 600;
+    display: flex;
+    align-items: center;
+    flex: 1; /* 왼쪽 끝에 붙게 차지 */
+    text-align: left;
+`
+
+const FeedbackLabel = styled.label`
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between; /* 제목 왼쪽, 입력 오른쪽으로 정렬 */
+    gap: 11px;
+    width: 100%;
+`
+
+const FeedbackTitle = styled.div`
+    font-size: 15px;
+    color: #111827;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    flex: 1; /* 왼쪽 끝에 붙게 차지 */
+    text-align: left;
 `
 
 const NumberInput = styled.input.attrs({ type: 'number' })`
@@ -58,9 +96,56 @@ const NumberInput = styled.input.attrs({ type: 'number' })`
     font-size: 14px;
     color: #111827;
     text-align: right;
+    min-width: 92px;
+    max-width: 140px;
     &:focus {
         border-color: rgba(31, 111, 235, 0.18);
         box-shadow: 0 6px 18px rgba(31, 111, 235, 0.06);
+    }
+`
+
+/* 추가: 입력 + 스테퍼 그룹 스타일 */
+const InputGroup = styled.div`
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+`
+
+const Stepper = styled.div`
+    display: flex;
+    flex-direction: column;
+    border-radius: 6px;
+    overflow: hidden;
+    background: transparent;
+    border: 1px solid ${vars.border};
+    height: 38px;
+    box-sizing: border-box;
+`
+
+const StepButton = styled.button`
+    appearance: none;
+    border: none;
+    background: ${vars.card};
+    padding: 4px 8px;
+    width: 32px;
+    height: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 12px;
+    line-height: 1;
+    color: #111827;
+
+    &:active {
+        transform: translateY(1px);
+    }
+    &:first-child {
+        border-bottom: 1px solid ${vars.border};
+    }
+
+    @media (max-width: 600px) {
+        width: 36px;
     }
 `
 
@@ -73,6 +158,14 @@ const Preview = styled.aside`
     padding: ${vars.pad};
     border-radius: 6px;
     box-sizing: border-box;
+
+    /* 모바일에서 결과가 폼 아래로 내려오도록 스타일 조정 */
+    @media (max-width: 900px) {
+        border-left: none;
+        border-top: 1px solid ${vars.border};
+        margin-top: 12px;
+        max-width: 100%;
+    }
 `
 
 const PreviewTitle = styled.div`
@@ -117,20 +210,24 @@ const FixedSubmit = styled.button`
         transform 0.12s ease,
         box-shadow 0.12s ease,
         opacity 0.12s ease;
-    &:hover {
-        transform: translateX(-50%) translateY(-3px);
-        box-shadow: 0 12px 36px rgba(31, 111, 235, 0.22);
-    }
-    &:active {
-        transform: translateX(-50%) translateY(0);
-        opacity: 0.95;
+
+    /* hover 가능한 입력장치에서만 hover/active 적용 (데스크탑 전용) */
+    @media (hover: hover) and (pointer: fine) {
+        &:hover {
+            transform: translateX(-50%) translateY(-3px);
+            box-shadow: 0 12px 36px rgba(31, 111, 235, 0.22);
+        }
+        &:active {
+            transform: translateX(-50%) translateY(0);
+            opacity: 0.95;
+        }
     }
 
-    /* 모바일에서 버튼을 화면 폭에 맞게 */
+    /* 모바일에서 버튼을 화면 폭에 맞게, 변형 제거하여 '도망' 현상 방지 */
     @media (max-width: 600px) {
         left: 16px;
         right: 16px;
-        transform: none;
+        transform: none !important;
         width: calc(100% - 32px);
         bottom: 16px;
         border-radius: 12px;
@@ -143,7 +240,25 @@ const Divider = styled.div`
     border-radius: 2px;
     margin: 8px 0;
 `
+const TextInput = styled.input.attrs({ type: 'text' })`
+    width: 100%;
+    height: 40px;
+    padding: 8px 10px;
+    border: 1px solid ${vars.border};
+    border-radius: 6px;
+    font-size: 14px;
+    color: #111827;
+    background: ${vars.card};
+    outline: none;
+    box-sizing: border-box;
+    &:focus {
+        border-color: rgba(31, 111, 235, 0.18);
+        box-shadow: 0 6px 18px rgba(31, 111, 235, 0.06);
+    }
+`
+
 export default function CheckForm({ onSubmit }) {
+    const previewRef = useRef(null)
     const [form, setForm] = useState({
         ssanghwaHotHall: '',
         ssanghwaIceHall: '',
@@ -183,6 +298,17 @@ export default function CheckForm({ onSubmit }) {
         ssanghwaWeight: '',
         sujeonggwaWeight: '',
         hodugwaWeight: '',
+        // 서울빙수 자유 피드백
+        seoulFeedback: '',
+        lemonFeedback: '',
+        patjukFeedback: '',
+        sweetPatjukFeedback: '',
+        pumkinFeedback: '',
+        omijaFeedback: '',
+        ssanghwaFeedback: '',
+        sujeonggwaFeedback: '',
+        coffeeFeedback: '',
+        hodugwajaFeedback: '',
     })
 
     const [submitted, setSubmitted] = useState(null)
@@ -219,16 +345,17 @@ export default function CheckForm({ onSubmit }) {
         lines.push('메뉴 피드백 올려드립니다.\n')
 
         // helper
-        const addMenu = (title, hallKey, takeoutKey, pouchKey) => {
+        const addMenu = (title, hallKey, takeoutKey, pouchKey, feedbackKey) => {
             const hall = f[hallKey] || 0
             const takeout = f[takeoutKey] || 0
             const pouch = pouchKey ? f[pouchKey] || 0 : null
+            const feedback = f[feedbackKey] || ''
 
             lines.push(`•${title}`)
             lines.push(`총 판매 수량 : 매장 ${hall} + 포장 ${takeout}`)
             if (pouchKey) lines.push(`총 판매 수량(파우치) : 포장 ${pouch}`)
             lines.push(
-                `직원 피드백 : ${hall === 0 ? '-' : hall > 1 ? '모두 빈 그릇으로 회수되었습니다.' : '빈 그릇으로 회수되었습니다.'}\n`
+                `직원 피드백 : ${feedback === '' ? (hall === 0 ? '-' : hall > 1 ? '모두 빈 그릇으로 회수되었습니다.' : '빈 그릇으로 회수되었습니다.') : feedback}\n`
             )
         }
 
@@ -238,44 +365,64 @@ export default function CheckForm({ onSubmit }) {
             iceTakeoutKey,
             hotHallKey,
             hotTakeoutKey,
-            bottleKey
+            bottleKey,
+            feedbackKey
         ) => {
             const iceHall = f[iceHallKey] || 0
             const iceTake = f[iceTakeoutKey] || 0
             const hotHall = f[hotHallKey] || 0
             const hotTake = f[hotTakeoutKey] || 0
             const bottle = f[bottleKey] || 0
+            const feedback = f[feedbackKey] || ''
 
             lines.push(`•${title}`)
             lines.push(
                 `총 판매 수량 : 매장 ${iceHall} + 포장 ${iceTake} / 핫 ${hotHall} + 포장 ${hotTake} / 병입 ${bottle}`
             )
             lines.push(
-                `직원 피드백 : ${iceHall + hotHall === 0 ? '-' : iceHall + hotHall > 1 ? '모두 빈 잔으로 회수되었습니다.' : '빈 잔으로 회수되었습니다.'}\n`
+                `직원 피드백 : ${feedback === '' ? (iceHall + hotHall === 0 ? '-' : iceHall + hotHall > 1 ? '모두 빈 잔으로 회수되었습니다.' : '빈 잔으로 회수되었습니다.') : feedback}\n`
             )
         }
 
         // Build each menu using available fields
         // 서울빙수
-        addMenu('서울빙수', 'seoulHall', 'seoulTakeout', null)
+        addMenu('서울빙수', 'seoulHall', 'seoulTakeout', null, 'seoulFeedback')
 
         // 레몬 진저 빙수
-        addMenu('레몬 진저 빙수', 'lemonHall', 'lemonTakeout', null)
+        addMenu(
+            '레몬진저빙수',
+            'lemonHall',
+            'lemonTakeout',
+            null,
+            'lemonFeedback'
+        )
 
         // 금옥팥죽
-        addMenu('금옥팥죽', 'patjukHall', 'patjukTakeout', 'patjukPouch')
+        addMenu(
+            '금옥팥죽',
+            'patjukHall',
+            'patjukTakeout',
+            'patjukPouch',
+            'patjukFeedback'
+        )
 
         // 단팥죽
         addMenu(
             '단팥죽',
             'sweetPatjukHall',
             'sweetPatjukTakeout',
-            'sweetPatjukPouch'
+            'sweetPatjukPouch',
+            'sweetPatjukFeedback'
         )
 
         // 단호박죽
-        addMenu('단호박죽', 'pumkinHall', 'pumkinTakeout', 'pumkinPouch')
-
+        addMenu(
+            '단호박죽',
+            'pumkinHall',
+            'pumkinTakeout',
+            'pumkinPouch',
+            'pumkinFeedback'
+        )
         //오미자
         addDrink(
             `오미자 (총 ${f.omijaWeight || 0}kg)`,
@@ -283,7 +430,8 @@ export default function CheckForm({ onSubmit }) {
             'omijaIceTakeout',
             'omijaHotHall',
             'omijaHotTakeout',
-            'omijaBottle'
+            'omijaBottle',
+            'omijaFeedback'
         )
 
         addDrink(
@@ -292,7 +440,8 @@ export default function CheckForm({ onSubmit }) {
             'ssanghwaIceTakeout',
             'ssanghwaHotHall',
             'ssanghwaHotTakeout',
-            'ssanghwabottle'
+            'ssanghwabottle',
+            'ssanghwaFeedback'
         )
 
         addDrink(
@@ -301,7 +450,8 @@ export default function CheckForm({ onSubmit }) {
             'sujeonggwaIceTakeout',
             'sujeonggwaHotHall',
             'sujeonggwaHotTakeout',
-            'sujeonggwaBottle'
+            'sujeonggwaBottle',
+            'sujeonggwaFeedback'
         )
 
         addDrink(
@@ -310,7 +460,8 @@ export default function CheckForm({ onSubmit }) {
             'coffeeIceTakeout',
             'coffeeHotHall',
             'coffeeHotTakeout',
-            'coffeeBottle'
+            'coffeeBottle',
+            'coffeeFeedback'
         )
 
         // 호두과자
@@ -320,7 +471,7 @@ export default function CheckForm({ onSubmit }) {
                 `총 판매 수량 : ${(f.hodugwajaHall || 0) + (f.hodugwajaTakeout || 0)} 세트`
             )
             lines.push(
-                `직원 피드백 : ${(f.hodugwajaHall || 0) + (f.hodugwajaTakeout || 0) === 0 ? '-' : '금일 특이사항 없습니다.'}\n`
+                `직원 피드백 : ${(f.hodugwajaFeedback || '') === '' ? ((f.hodugwajaHall || 0) + (f.hodugwajaTakeout || 0) === 0 ? '-' : '금일 특이사항 없습니다.') : f.hodugwajaFeedback}\n`
             )
         }
 
@@ -339,393 +490,248 @@ export default function CheckForm({ onSubmit }) {
 
         setSubmitted(report)
 
+        // 모바일(<=900px)에서 제출 시 결과 영역으로 스무스 스크롤
+        if (
+            typeof window !== 'undefined' &&
+            window.innerWidth <= 900 &&
+            previewRef.current
+        ) {
+            previewRef.current.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start',
+            })
+        }
+
         if (onSubmit && typeof onSubmit === 'function') onSubmit(payload)
         else console.log('폼 제출:', payload)
     }
+
+    // helper: step으로 조절 (step은 number 또는 string)
+    const adjust = (name, delta) => {
+        setForm((prev) => {
+            const cur = parseFloat(prev[name]) || 0
+            const step = typeof delta === 'string' ? parseFloat(delta) : delta
+            const next = Math.round((cur + step) * 1000) / 1000 // 소수 처리 안전하게
+            return { ...prev, [name]: next }
+        })
+    }
+
+    // field 정의로 렌더링 단순화 (각 항목에 스텝 설정 가능)
+    const fieldDefs = [
+        { name: 'omijaWeight', label: '오미자 무게', step: 0.01 },
+        { name: 'ssanghwaWeight', label: '쌍화차 무게', step: 0.01 },
+        { name: 'sujeonggwaWeight', label: '수정과 무게', step: 0.01 },
+        { name: 'hodugwajaWeight', label: '호두과자 제조', step: 0.001 },
+        { name: 'Divider', label: '' },
+        { name: 'ssanghwaHotHall', label: '쌍화차[HOT]' },
+        { name: 'sujeonggwaHotHall', label: '수정과[HOT]' },
+        { name: 'sujeonggwaIceHall', label: '수정과[ICE]' },
+        { name: 'omijaHotHall', label: '오미자[HOT]' },
+        { name: 'omijaIceHall', label: '오미자[ICE]' },
+        { name: 'coffeeHotHall', label: '커피[HOT]' },
+        { name: 'coffeeIceHall', label: '커피[ICE]' },
+
+        { name: 'patjukHall', label: '금옥팥죽' },
+        { name: 'sweetPatjukHall', label: '단팥죽' },
+        { name: 'seoulHall', label: '서울빙수' },
+        { name: 'hodugwajaHall', label: '호두과자' },
+        { name: 'lemonHall', label: '레몬진저빙수' },
+        { name: 'ssanghwaIceHall', label: '쌍화차[ICE]' },
+        { name: 'pumkinHall', label: '단호박 죽' },
+        { name: 'Divider' },
+        { name: 'ssanghwaHotTakeout', label: '쌍화차[HOT](포장)' },
+        { name: 'sujeonggwaHotTakeout', label: '수정과[HOT](포장)' },
+        { name: 'sujeonggwaIceTakeout', label: '수정과[ICE](포장)' },
+        { name: 'omijaHotTakeout', label: '오미자[HOT](포장)' },
+        { name: 'omijaIceTakeout', label: '오미자[ICE](포장)' },
+        { name: 'coffeeHotTakeout', label: '커피[HOT] (포장)' },
+        { name: 'coffeeIceTakeout', label: '커피[ICE] (포장)' },
+
+        { name: 'ssanghwabottle', label: '쌍화차 병' },
+        { name: 'sujeonggwaBottle', label: '수정과 병' },
+        { name: 'omijaBottle', label: '오미자 병' },
+
+        { name: 'patjukTakeout', label: '금옥팥죽 (포장)' },
+        { name: 'sweetPatjukTakeout', label: '단팥죽 (포장)' },
+        { name: 'seoulTakeout', label: '서울빙수 (포장)' },
+        { name: 'hodugwajaTakeout', label: '호두과자 (포장)' },
+        { name: 'lemonTakeout', label: '레몬진저빙수 (포장)' },
+        { name: 'ssanghwaIceTakeout', label: '쌍화차[ICE] (포장)' },
+
+        { name: 'patjukPouch', label: '금옥팥죽 파우치' },
+        { name: 'sweetPatjukPouch', label: '단팥죽 파우치' },
+        { name: 'pumkinPouch', label: '호박죽 파우치' },
+    ]
 
     return (
         <Container>
             <FormWrapper onSubmit={handleSubmit} noValidate>
                 <Fields>
-                    <Field>
-                        <Label>
-                            오미자 무게
-                            <NumberInput
-                                name="omijaWeight"
-                                step="0.01"
-                                value={form.omijaWeight}
-                                onChange={handleChange}
-                            />
-                        </Label>
-                    </Field>
-                    <Field>
-                        <Label>
-                            쌍화차 무게
-                            <NumberInput
-                                name="ssanghwaWeight"
-                                step="0.01"
-                                value={form.ssanghwaWeight}
-                                onChange={handleChange}
-                            />
-                        </Label>
-                    </Field>
-                    <Field>
-                        <Label>
-                            수정과 무게
-                            <NumberInput
-                                name="sujeonggwaWeight"
-                                step="0.01"
-                                value={form.sujeonggwaWeight}
-                                onChange={handleChange}
-                            />
-                        </Label>
-                    </Field>
-                    <Field>
-                        <Label>
-                            호두과자 제조
-                            <NumberInput
-                                name="hodugwajaWeight"
-                                step="0.001"
-                                value={form.hodugwajaWeight}
-                                onChange={handleChange}
-                            />
-                        </Label>
-                    </Field>
+                    {fieldDefs.map((f) =>
+                        f.name === 'Divider' ? (
+                            <Divider key="divider" />
+                        ) : (
+                            <Field key={f.name}>
+                                <Label>
+                                    <Title>{f.label}</Title>
+                                    <InputGroup>
+                                        <NumberInput
+                                            name={f.name}
+                                            step={f.step || 1}
+                                            value={form[f.name]}
+                                            onChange={handleChange}
+                                        />
+                                        <Stepper aria-hidden>
+                                            <StepButton
+                                                type="button"
+                                                aria-label={`증가 ${f.label}`}
+                                                onClick={() =>
+                                                    adjust(
+                                                        f.name,
+                                                        f.step !== undefined
+                                                            ? f.step
+                                                            : 1
+                                                    )
+                                                }>
+                                                ▲
+                                            </StepButton>
+                                            <StepButton
+                                                type="button"
+                                                aria-label={`감소 ${f.label}`}
+                                                onClick={() =>
+                                                    adjust(
+                                                        f.name,
+                                                        f.step !== undefined
+                                                            ? -f.step
+                                                            : -1
+                                                    )
+                                                }>
+                                                ▼
+                                            </StepButton>
+                                        </Stepper>
+                                    </InputGroup>
+                                </Label>
+                            </Field>
+                        )
+                    )}
                     <Divider />
-                    <Field>
-                        <Label>
-                            쌍화차[HOT]
-                            <NumberInput
-                                name="ssanghwaHotHall"
-                                value={form.ssanghwaHotHall}
+
+                    <Field key="seoul-feedback">
+                        <FeedbackLabel>
+                            <FeedbackTitle>서울빙수 피드백</FeedbackTitle>
+                            <TextInput
+                                name="seoulFeedback"
+                                placeholder="직원 피드백 입력"
+                                value={form.seoulFeedback}
                                 onChange={handleChange}
                             />
-                        </Label>
+                        </FeedbackLabel>
                     </Field>
-                    <Field>
-                        <Label>
-                            수정과[HOT]
-                            <NumberInput
-                                name="sujeonggwaHotHall"
-                                value={form.sujeonggwaHotHall}
+                    <Field key="lemon-feedback">
+                        <FeedbackLabel>
+                            <FeedbackTitle>레몬진저빙수 피드백</FeedbackTitle>
+                            <TextInput
+                                name="lemonFeedback"
+                                placeholder="직원 피드백 입력"
+                                value={form.lemonFeedback}
                                 onChange={handleChange}
                             />
-                        </Label>
+                        </FeedbackLabel>
                     </Field>
-                    <Field>
-                        <Label>
-                            수정과[ICE]
-                            <NumberInput
-                                name="sujeonggwaIceHall"
-                                value={form.sujeonggwaIceHall}
+                    <Field key="patjuk-feedback">
+                        <FeedbackLabel>
+                            <FeedbackTitle>금옥팥죽 피드백</FeedbackTitle>
+                            <TextInput
+                                name="patjukFeedback"
+                                placeholder="직원 피드백 입력"
+                                value={form.patjukFeedback}
                                 onChange={handleChange}
                             />
-                        </Label>
+                        </FeedbackLabel>
                     </Field>
-                    <Field>
-                        <Label>
-                            오미자[HOT]
-                            <NumberInput
-                                name="omijaHotHall"
-                                value={form.omijaHotHall}
+                    <Field key="sweetPatjuk-feedback">
+                        <FeedbackLabel>
+                            <FeedbackTitle>단팥죽 피드백</FeedbackTitle>
+                            <TextInput
+                                name="sweetPatjukFeedback"
+                                placeholder="직원 피드백 입력"
+                                value={form.sweetPatjukFeedback}
                                 onChange={handleChange}
                             />
-                        </Label>
+                        </FeedbackLabel>
                     </Field>
-                    <Field>
-                        <Label>
-                            오미자[ICE]
-                            <NumberInput
-                                name="omijaIceHall"
-                                value={form.omijaIceHall}
+                    <Field key="pumkin-feedback">
+                        <FeedbackLabel>
+                            <FeedbackTitle>단호박죽 피드백</FeedbackTitle>
+                            <TextInput
+                                name="pumkinFeedback"
+                                placeholder="직원 피드백 입력"
+                                value={form.pumkinFeedback}
                                 onChange={handleChange}
                             />
-                        </Label>
+                        </FeedbackLabel>
                     </Field>
-                    <Field>
-                        <Label>
-                            커피[HOT]
-                            <NumberInput
-                                name="coffeeHotHall"
-                                value={form.coffeeHotHall}
+                    <Field key="omija-feedback">
+                        <FeedbackLabel>
+                            <FeedbackTitle>오미자 피드백</FeedbackTitle>
+                            <TextInput
+                                name="omijaFeedback"
+                                placeholder="직원 피드백 입력"
+                                value={form.omijaFeedback}
                                 onChange={handleChange}
                             />
-                        </Label>
+                        </FeedbackLabel>
                     </Field>
-                    <Field>
-                        <Label>
-                            커피[ICE]
-                            <NumberInput
-                                name="coffeeIceHall"
-                                value={form.coffeeIceHall}
+                    <Field key="ssanghwa-feedback">
+                        <FeedbackLabel>
+                            <FeedbackTitle>쌍화차 피드백</FeedbackTitle>
+                            <TextInput
+                                name="ssanghwaFeedback"
+                                placeholder="직원 피드백 입력"
+                                value={form.ssanghwaFeedback}
                                 onChange={handleChange}
                             />
-                        </Label>
+                        </FeedbackLabel>
                     </Field>
-                    <Field>
-                        <Label>
-                            금옥팥죽
-                            <NumberInput
-                                name="patjukHall"
-                                value={form.patjukHall}
+                    <Field key="sujeonggwa-feedback">
+                        <FeedbackLabel>
+                            <FeedbackTitle>수정과 피드백</FeedbackTitle>
+                            <TextInput
+                                name="sujeonggwaFeedback"
+                                placeholder="직원 피드백 입력"
+                                value={form.sujeonggwaFeedback}
                                 onChange={handleChange}
                             />
-                        </Label>
+                        </FeedbackLabel>
                     </Field>
-                    <Field>
-                        <Label>
-                            단팥죽
-                            <NumberInput
-                                name="sweetPatjukHall"
-                                value={form.sweetPatjukHall}
+                    <Field key="coffee-feedback">
+                        <FeedbackLabel>
+                            <FeedbackTitle>커피 피드백</FeedbackTitle>
+                            <TextInput
+                                name="coffeeFeedback"
+                                placeholder="직원 피드백 입력"
+                                value={form.coffeeFeedback}
                                 onChange={handleChange}
                             />
-                        </Label>
+                        </FeedbackLabel>
                     </Field>
-                    <Field>
-                        <Label>
-                            서울빙수
-                            <NumberInput
-                                name="seoulHall"
-                                value={form.seoulHall}
+                    <Field key="hodugwaja-feedback">
+                        <FeedbackLabel>
+                            <FeedbackTitle>호두과자 피드백</FeedbackTitle>
+                            <TextInput
+                                name="hodugwajaFeedback"
+                                placeholder="직원 피드백 입력"
+                                value={form.hodugwajaFeedback}
                                 onChange={handleChange}
                             />
-                        </Label>
+                        </FeedbackLabel>
                     </Field>
-                    <Field>
-                        <Label>
-                            호두과자
-                            <NumberInput
-                                name="hodugwajaHall"
-                                value={form.hodugwajaHall}
-                                onChange={handleChange}
-                            />
-                        </Label>
-                    </Field>
-                    <Field>
-                        <Label>
-                            레몬진저빙수
-                            <NumberInput
-                                name="lemonHall"
-                                value={form.lemonHall}
-                                onChange={handleChange}
-                            />
-                        </Label>
-                    </Field>
-                    <Field>
-                        <Label>
-                            쌍화차[ICE]
-                            <NumberInput
-                                name="ssanghwaIceHall"
-                                value={form.ssanghwaIceHall}
-                                onChange={handleChange}
-                            />
-                        </Label>
-                    </Field>
-                    <Field>
-                        <Label>
-                            단호박 죽
-                            <NumberInput
-                                name="pumkinHall"
-                                value={form.pumkinHall}
-                                onChange={handleChange}
-                            />
-                        </Label>
-                    </Field>
+
                     <Divider />
-                    <Field>
-                        <Label>
-                            쌍화차[HOT](포장)
-                            <NumberInput
-                                name="ssanghwaHotTakeout"
-                                value={form.ssanghwaHotTakeout}
-                                onChange={handleChange}
-                            />
-                        </Label>
-                    </Field>
-                    <Field>
-                        <Label>
-                            수정과[HOT](포장)
-                            <NumberInput
-                                name="sujeonggwaHotTakeout"
-                                value={form.sujeonggwaHotTakeout}
-                                onChange={handleChange}
-                            />
-                        </Label>
-                    </Field>
-                    <Field>
-                        <Label>
-                            수정과[ICE](포장)
-                            <NumberInput
-                                name="sujeonggwaIceTakeout"
-                                value={form.sujeonggwaIceTakeout}
-                                onChange={handleChange}
-                            />
-                        </Label>
-                    </Field>
-                    <Field>
-                        <Label>
-                            오미자[HOT](포장)
-                            <NumberInput
-                                name="omijaHotTakeout"
-                                value={form.omijaHotTakeout}
-                                onChange={handleChange}
-                            />
-                        </Label>
-                    </Field>
-                    <Field>
-                        <Label>
-                            오미자[ICE](포장)
-                            <NumberInput
-                                name="omijaIceTakeout"
-                                value={form.omijaIceTakeout}
-                                onChange={handleChange}
-                            />
-                        </Label>
-                    </Field>
-                    <Field>
-                        <Label>
-                            커피[HOT] (포장)
-                            <NumberInput
-                                name="coffeeHotTakeout"
-                                value={form.coffeeHotTakeout}
-                                onChange={handleChange}
-                            />
-                        </Label>
-                    </Field>
-                    <Field>
-                        <Label>
-                            커피[ICE] (포장)
-                            <NumberInput
-                                name="coffeeIceTakeout"
-                                value={form.coffeeIceTakeout}
-                                onChange={handleChange}
-                            />
-                        </Label>
-                    </Field>
-                    <Field>
-                        <Label>
-                            쌍화차 병
-                            <NumberInput
-                                name="ssanghwabottle"
-                                value={form.ssanghwabottle}
-                                onChange={handleChange}
-                            />
-                        </Label>
-                    </Field>
-                    <Field>
-                        <Label>
-                            수정과 병
-                            <NumberInput
-                                name="sujeonggwaBottle"
-                                value={form.sujeonggwaBottle}
-                                onChange={handleChange}
-                            />
-                        </Label>
-                    </Field>
-                    <Field>
-                        <Label>
-                            오미자 병
-                            <NumberInput
-                                name="omijaBottle"
-                                value={form.omijaBottle}
-                                onChange={handleChange}
-                            />
-                        </Label>
-                    </Field>
-                    <Field>
-                        <Label>
-                            금옥팥죽 (포장)
-                            <NumberInput
-                                name="patjukTakeout"
-                                value={form.patjukTakeout}
-                                onChange={handleChange}
-                            />
-                        </Label>
-                    </Field>
-                    <Field>
-                        <Label>
-                            단팥죽 (포장)
-                            <NumberInput
-                                name="sweetPatjukTakeout"
-                                value={form.sweetPatjukTakeout}
-                                onChange={handleChange}
-                            />
-                        </Label>
-                    </Field>
-                    <Field>
-                        <Label>
-                            서울빙수 (포장)
-                            <NumberInput
-                                name="seoulTakeout"
-                                value={form.seoulTakeout}
-                                onChange={handleChange}
-                            />
-                        </Label>
-                    </Field>
-                    <Field>
-                        <Label>
-                            호두과자 (포장)
-                            <NumberInput
-                                name="hodugwajaTakeout"
-                                value={form.hodugwajaTakeout}
-                                onChange={handleChange}
-                            />
-                        </Label>
-                    </Field>
-                    <Field>
-                        <Label>
-                            레몬진저빙수 (포장)
-                            <NumberInput
-                                name="lemonTakeout"
-                                value={form.lemonTakeout}
-                                onChange={handleChange}
-                            />
-                        </Label>
-                    </Field>
-                    <Field>
-                        <Label>
-                            쌍화차[ICE] (포장)
-                            <NumberInput
-                                name="ssanghwaIceTakeout"
-                                value={form.ssanghwaIceTakeout}
-                                onChange={handleChange}
-                            />
-                        </Label>
-                    </Field>
-                    <Field>
-                        <Label>
-                            금옥팥죽 파우치
-                            <NumberInput
-                                name="patjukPouch"
-                                value={form.patjukPouch}
-                                onChange={handleChange}
-                            />
-                        </Label>
-                    </Field>
-                    <Field>
-                        <Label>
-                            단팥죽 파우치
-                            <NumberInput
-                                name="sweetPatjukPouch"
-                                value={form.sweetPatjukPouch}
-                                onChange={handleChange}
-                            />
-                        </Label>
-                    </Field>
-                    <Field>
-                        <Label>
-                            호박죽 파우치
-                            <NumberInput
-                                name="pumkinPouch"
-                                value={form.pumkinPouch}
-                                onChange={handleChange}
-                            />
-                        </Label>
-                    </Field>
                 </Fields>
             </FormWrapper>
-            <Preview>
+
+            <Preview ref={previewRef}>
                 <PreviewTitle>제출 결과 (오른쪽)</PreviewTitle>
                 {submitted ? (
                     <>
