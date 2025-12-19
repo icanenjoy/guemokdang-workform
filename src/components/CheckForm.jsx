@@ -314,7 +314,7 @@ export default function CheckForm({ onSubmit }) {
         omijaWeight: '',
         ssanghwaWeight: '',
         sujeonggwaWeight: '',
-        hodugwaWeight: '',
+        hodugwajaWeight: '',
         // 서울빙수 자유 피드백
         seoulFeedback: '',
         lemonFeedback: '',
@@ -486,7 +486,7 @@ export default function CheckForm({ onSubmit }) {
 
         // 호두과자
         {
-            lines.push(`•호두과자 (${f.hodugwaWeight || 0}배치 제조)`)
+            lines.push(`•호두과자 (${f.hodugwajaWeight || 0}배치 제조)`)
             lines.push(
                 `총 판매 수량 : ${(f.hodugwajaHall || 0) + (f.hodugwajaTakeout || 0)} 세트`
             )
